@@ -1,0 +1,315 @@
+#include <iostream>
+#include <vector>
+#include <iterator>
+#include <cmath>
+using namespace std;
+
+template<typename T>
+class Polynomial {
+ public :
+    vector<T> a;
+    Polynomial(const vector<T> &b) : a(b) {}
+    Polynomial(T b = T()) {
+        a.push_back(b);
+    }
+    template<typename It>
+    Polynomial(It beg, It end) {
+        for (auto it = beg; it != end; it++) {
+            a.push_back(*it);
+        }
+    }
+    Polynomial &DelZero() {
+        for (auto it = prev(a.end()); it != prev(a.begin()); it--) {
+            if (*it == T()) {
+                a.erase(it);
+            } else {
+                break;
+            }
+        }
+        return *this;
+    }
+    Polynomial &operator+=(const Polynomial<T> &b) {
+        for (size_t i = 0; i < min(a.size(), b.a.size()); i++) {
+            a[i] += b.a[i];
+        }
+        if (b.a.size() > a.size()) {
+            for (size_t i = a.size(); i < b.a.size(); i++) {
+                a.push_back(b[i]);
+            }
+        }
+        return *this;
+    }
+    Polynomial &operator-=(const Polynomial<T> &b) {
+        for (size_t i = 0; i < min(a.size(), b.a.size()); i++) {
+            a[i] -= b.a[i];
+        }
+        if (b.a.size() > a.size()) {
+            for (size_t i = a.size(); i < b.a.size(); i++) {
+                a.push_back(-b[i]);
+            }
+        }
+        return *this;
+    }
+    bool operator==(const Polynomial<T> &b) const {
+        Polynomial<T> c(*this);
+        Polynomial<T> d(b);
+        d.DelZero();
+        c.DelZero();
+        if (d.a.size() != c.a.size()) {
+            return false;
+        }
+        for (size_t i = 0; i < c.a.size(); i++) {
+            if (d.a[i] != c.a[i]) {
+                return false;
+            }
+        }
+        return true;
+    }
+    bool operator!=(const Polynomial<T> &b) const {
+        Polynomial<T> c(*this);
+        Polynomial<T> d(b);
+        c.DelZero();
+        d.DelZero();
+        if (d.a.size() != c.a.size()) {
+            return true;
+        }
+        for (size_t i = 0; i < c.a.size(); i++) {
+            if (d.a[i] != c.a[i]) {
+                return true;
+            }
+        }
+        return false;
+    }
+    Polynomial operator+(const Polynomial<T> &b) const {
+        Polynomial<T> c(*this);
+        for (size_t i = 0; i < min(c.a.size(), b.a.size()); i++) {
+            c.a[i] += b.a[i];
+        }
+        if (b.a.size() > c.a.size()) {
+            for (size_t i = c.a.size(); i < b.a.size(); i++) {
+                c.a.push_back(b[i]);
+            }
+        }
+        return c;
+    }
+    Polynomial operator-(const Polynomial<T> &b) const {
+        Polynomial<T> c(*this);
+        for (size_t i = 0; i < min(c.a.size(), b.a.size()); i++) {
+            c.a[i] -= b.a[i];
+        }
+        if (b.a.size() > c.a.size()) {
+            for (size_t i = c.a.size(); i < b.a.size(); i++) {
+                c.a.push_back(-b[i]);
+            }
+        }
+        return c;
+    }
+    T operator[](size_t i) const {
+        if (i >= a.size()) {
+            return 0;
+        } else {
+            return a[i];
+        }
+    }
+    typename vector<T>::const_iterator begin() const {
+        return a.begin();
+    }
+    typename vector<T>::const_iterator end() const {
+        auto it = prev(a.end());
+        for (; it != prev(a.begin()); it--) {
+            if (*it == T()) {
+            } else {
+                break;
+            }
+        }
+        return ++it;
+    }
+    int Degree() const {
+        Polynomial<T> c(*this);
+        c.DelZero();
+        if (c.a.size() == 0) {
+            return -1;
+        } else {
+            return c.a.size() - 1;
+        }
+    }
+    Polynomial operator*(const Polynomial<T> &b) const {
+        vector<T> c(b.a.size() + a.size() + 1);
+        for (size_t i = 0; i < a.size(); i++) {
+            for (size_t j = 0; j < b.a.size(); j++) {
+                c[i + j] += a[i] * b.a[j];
+            }
+        }
+        return Polynomial(c);
+    }
+    Polynomial &operator*=(const Polynomial<T> &b) {
+        vector<T> c(b.a.size() + a.size() + 1);
+        for (size_t i = 0; i < a.size(); i++) {
+            for (size_t j = 0; j < b.a.size(); j++) {
+                c[i + j] += a[i] * b.a[j];
+            }
+        }
+        a = c;
+        return *this;
+    }
+    T operator()(T b) const {
+        T summ = 0;
+        T deg = 1;
+        for (size_t i = 0; i < a.size(); i++) {
+            summ += deg * a[i];
+            deg *= b;
+        }
+        return summ;
+    }
+    Polynomial operator&(const Polynomial &g) const {
+        Polynomial<T> c(a[0]);
+        Polynomial<T> deg(g);
+        for (size_t i = 1; i < a.size(); i++) {
+            c += deg * a[i];
+            deg *= g;
+        }
+        return c;
+    }
+    Polynomial operator/(const Polynomial &g) const {
+        Polynomial<T> f(*this);
+        Polynomial<T> l;
+        while (f.Degree() >= g.Degree()) {
+            vector<T> b(a.size(), 0);
+            T r = (*prev(f.end())) / (*prev(g.end()));
+            b[f.Degree() - g.Degree()] = r;
+            Polynomial<T> p(b);
+            l += p;
+            f -= p * g;
+        }
+        return l;
+    }
+    Polynomial operator%(const Polynomial &g) const {
+        return *this - (*this / g) * g;
+    }
+};
+template<typename T>
+Polynomial<T> operator,(const Polynomial<T> &g, const Polynomial<T> &f) {
+    if (f.Degree() > g.Degree()) {
+        if (f % g == T()) {
+            return g / (*prev(g.end()));
+        }
+        return (g, f % g);
+    } else {
+        if (g % f == T()) {
+            return f / (*prev(f.end()));
+        }
+        return (g % f, f);
+    }
+}
+template<typename T>
+ostream &operator<<(ostream &out, const Polynomial<T> &b) {
+    Polynomial<T> c(b);
+    c.DelZero();
+    if (c.a.empty()) {
+        out << 0;
+        return out;
+    }
+    int deg = b.Degree();
+    auto it = c.end();
+    it--;
+    if (*it == T(1)) {
+        if (deg == 0) {
+            out << 1;
+            return out;
+        }
+        if (deg == 1) {
+            out << "x";
+            deg--;
+        } else {
+            out << "x^" << deg;
+            deg--;
+        }
+    } else {
+        if (*it == T(-1)) {
+            if (deg == 0) {
+                out << -1;
+                return out;
+            }
+            if (deg == 1) {
+                out << "-x";
+                deg--;
+            } else {
+                out << "-x^" << deg;
+                deg--;
+            }
+        } else {
+            if (deg == 0) {
+                out << *it;
+                return out;
+            }
+            if (deg == 1) {
+                out << *it << "*" << "x";
+                deg--;
+            } else {
+                out << *it << "*" << "x^" << deg;
+                deg--;
+            }
+        }
+    }
+    it--;
+    for (; it != prev(c.begin()); it--) {
+        if (*it == T(1)) {
+            if (deg == 0) {
+                out << '+' << 1;
+                return out;
+            }
+            if (deg == 1) {
+                out << '+' << "x";
+                deg--;
+            } else {
+                out << '+' << "x^" << deg;
+                deg--;
+            }
+        } else {
+            if (*it == T(-1)) {
+                if (deg == 0) {
+                    out << -1;
+                    return out;
+                }
+                if (deg == 1) {
+                    out << "-x";
+                    deg--;
+                } else {
+                    out << "-x^" << deg;
+                    deg--;
+                }
+            } else {
+                if (*it < T(0)) {
+                    if (deg == 0) {
+                        out << *it;
+                        return out;
+                    }
+                    if (deg == 1) {
+                        out << *it << "*" << "x";
+                        deg--;
+                    } else {
+                        out << *it << "*" << "x^" << deg;
+                        deg--;
+                    }
+                } else {
+                    if (*it != T(0)) {
+                        if (deg == 0) {
+                            out << '+' << *it;
+                            return out;
+                        }
+                        if (deg == 1) {
+                            out << '+' << *it << "*" << "x";
+                            deg--;
+                        } else {
+                            out << '+' << *it << "*" << "x^" << deg;
+                            deg--;
+                        }
+                    } else {
+                        deg--;
+                    }
+                }
+            }
+        }
+    }
+    return out;
+}
